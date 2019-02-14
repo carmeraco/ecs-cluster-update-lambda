@@ -2,8 +2,8 @@
 # SNS
 ##############################################################
 resource "aws_sns_topic" "asg_updates" {
-  name         = "ecs-cluster-updates"
-  display_name = "ecs-cluster-updates"
+  name         = "${var.sns_topic_name}"
+  display_name = "${var.sns_topic_name}"
 }
 
 resource "aws_lambda_permission" "allow_sns" {
