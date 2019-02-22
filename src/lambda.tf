@@ -55,7 +55,7 @@ resource "aws_lambda_function" "roll_lambda" {
   role             = "${aws_iam_role.roll_lambda.arn}"
   function_name    = "${var.roll_lambda_name}"
   description      = "Mark old ECS instances before rolling cluster update"
-  handler          = "tag.handler"
+  handler          = "roll.handler"
   runtime          = "python3.6"
   timeout          = 300
 

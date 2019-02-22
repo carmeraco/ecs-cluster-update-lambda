@@ -257,6 +257,7 @@ def handler(event, context):
         return
 
 
+# Below to use if calling locally for testing purposes
 if __name__ == '__main__':
     event = {
         'Records': [
