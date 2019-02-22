@@ -174,6 +174,20 @@ def rebalance(asg_data, dry=False):
     return
 
 
+def wait_for_normalization(msg):
+    """ Wait until the ASG stops taking action
+
+    Args:
+        msg (dict): Task metadata
+    """
+    while True:
+        time.sleep(msg['pause'])
+        asg_data = describe_asg(msg['asg_name'])
+        if len(get_ec2_instances(asg_data)) == asg_data['DesiredCapacity']:
+            break
+    return
+
+
 def handler(event, context):
     """ Main lambda handler.
 
@@ -294,7 +308,7 @@ def handler(event, context):
 
         # Clean up extra instances
         update_asg(message['asg_desired'], message, dry)
-        time.sleep(message['pause'])
+        wait_for_normalization(message)
 
         # Rebalance ecs cluster
         rebalance(asg_data, dry)
