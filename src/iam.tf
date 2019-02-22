@@ -130,10 +130,10 @@ resource "aws_iam_policy" "roll_lambda_permissions" {
   name        = "${aws_iam_role.tag_lambda.name}-permissions-${var.region}"
   description = "Mark old ECS instances before rolling cluster update"
   path        = "/"
-  policy      = "${data.aws_iam_policy_document.tag_lambda_permissions.json}"
+  policy      = "${data.aws_iam_policy_document.roll_lambda_permissions.json}"
 }
 
-data "aws_iam_policy_document" "tag_lambda_permissions" {
+data "aws_iam_policy_document" "roll_lambda_permissions" {
   statement {
     actions = [
       "autoscaling:DescribeAutoScalingGroups",
@@ -168,7 +168,7 @@ data "aws_iam_policy_document" "tag_lambda_permissions" {
   }
 }
 
-resource "aws_iam_role_policy_attachment" "tag_lambda_permissions" {
+resource "aws_iam_role_policy_attachment" "roll_lambda_permissions" {
   role       = "${aws_iam_role.tag_lambda.name}"
-  policy_arn = "${aws_iam_policy.tag_lambda_permissions.arn}"
+  policy_arn = "${aws_iam_policy.roll_lambda_permissions.arn}"
 }
