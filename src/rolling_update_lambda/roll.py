@@ -127,7 +127,7 @@ def handler(event, context):
         - If any original instances exist, sleep and put a new SNS message in
     """
     logger.info('Starting execution')
-    message = event['Records'][0]['Sns']['Message']
+    message = json.loads(event['Records'][0]['Sns']['Message'])
 
     # Check that asg has been specified
     if 'asg_name' not in message.keys():
@@ -263,11 +263,11 @@ if __name__ == '__main__':
         'Records': [
             {
                 'Sns': {
-                    'Message': {
+                    'Message': json.dumps({
                         'dry_run': True,
                         'growth_percent': 400,
                         'asg_name': 'dev-ecs-cluster'
-                    },
+                    }),
                     'TopicArn': 'dev-ecs-roll'
                 }
             }
