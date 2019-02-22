@@ -111,3 +111,62 @@ resource "aws_iam_role_policy_attachment" "tag_lambda_permissions" {
   role       = "${aws_iam_role.tag_lambda.name}"
   policy_arn = "${aws_iam_policy.tag_lambda_permissions.arn}"
 }
+
+##############################################################
+# rolling-update-ecs-lambda
+##############################################################
+resource "aws_iam_role" "roll_lambda" {
+  name               = "${var.roll_lambda_name}-${var.region}"
+  assume_role_policy = "${data.aws_iam_policy_document.trust_policy.json}"
+}
+
+resource "aws_iam_role_policy_attachment" "roll_lambda_basic_execution" {
+  role       = "${aws_iam_role.tag_lambda.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+##############################################################
+resource "aws_iam_policy" "roll_lambda_permissions" {
+  name        = "${aws_iam_role.tag_lambda.name}-permissions-${var.region}"
+  description = "Mark old ECS instances before rolling cluster update"
+  path        = "/"
+  policy      = "${data.aws_iam_policy_document.tag_lambda_permissions.json}"
+}
+
+data "aws_iam_policy_document" "tag_lambda_permissions" {
+  statement {
+    actions = [
+      "autoscaling:DescribeAutoScalingGroups",
+      "autoscaling:TerminateInstanceInAutoScalingGroup",
+      "autoscaling:UpdateAutoScalingGroup",
+      "ec2:CreateTags",
+    ]
+
+    resources = [
+      "*",
+    ]
+  }
+  statement {
+    actions = [
+      "sns:Publish",
+    ]
+
+    resources = [
+      "${aws_sns_topic.asg_rolling_updates.arn}",
+    ]
+  }
+  statement {
+    actions = [
+      "lambda:Invoke",
+    ]
+
+    resources = [
+      "${aws_lambda_function.tag_lambda.arn}",
+    ]
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "tag_lambda_permissions" {
+  role       = "${aws_iam_role.tag_lambda.name}"
+  policy_arn = "${aws_iam_policy.tag_lambda_permissions.arn}"
+}

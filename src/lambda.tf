@@ -16,7 +16,7 @@ resource "aws_lambda_function" "drain_lambda" {
   handler          = "drain.handler"
   runtime          = "python3.6"
   timeout          = 300
-  tags             = "${var.tags}"
+  tags             = "${merge(var.tags, map('function-name', 'drain-instances'))}"
 }
 
 ##############################################################
@@ -37,5 +37,33 @@ resource "aws_lambda_function" "tag_lambda" {
   handler          = "tag.handler"
   runtime          = "python3.6"
   timeout          = 300
-  tags             = "${var.tags}"
+  tags             = "${merge(var.tags, map('function-name', 'drain-tag'))}"
+}
+
+##############################################################
+# rolling-update-ecs-lambda
+##############################################################
+data "archive_file" "roll_lambda_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/rolling_update_lambda"
+  output_path = "${path.module}/roll_lambda.zip"
+}
+
+resource "aws_lambda_function" "roll_lambda" {
+  filename         = "${data.archive_file.roll_lambda_zip.output_path}"
+  source_code_hash = "${data.archive_file.roll_lambda_zip.output_base64sha256}"
+  role             = "${aws_iam_role.roll_lambda.arn}"
+  function_name    = "${var.roll_lambda_name}"
+  description      = "Mark old ECS instances before rolling cluster update"
+  handler          = "tag.handler"
+  runtime          = "python3.6"
+  timeout          = 300
+
+  environment {
+    variables = {
+      TAG_FUNCTION_NAME = "${aws_lambda_function.tag_lambda.function_name}"
+    }
+  }
+
+  tags             = "${merge(var.tags, map('function-name', 'drain-tag'))}"
 }

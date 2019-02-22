@@ -8,6 +8,14 @@ variable "tag_lambda_name" {
   default = "tag-ecs-lambda"
 }
 
+variable "roll_lambda_name" {
+  default = "roll-ecs-lambda"
+}
+
+variable "roll_topic_name" {
+  default = "ecs-cluster-rolling-update"
+}
+
 variable "sns_topic_name" {
   default = "ecs-cluster-updates"
 }
