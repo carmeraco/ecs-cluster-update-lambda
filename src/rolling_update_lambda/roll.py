@@ -74,33 +74,6 @@ def get_ec2_instances(asg_data):
     return [i['InstanceId'] for i in raw_instances]
 
 
-def get_tag_function_name():
-    """ Get the tag function name corresponding to the current function
-
-    Args:
-
-    Returns:
-        string: Name of the tag function
-    """
-    # Alternative dynamic option commented below
-    # current_function_name = os.getenv('AWS_LAMBDA_FUNCTION_NAME')
-    # current_function = lambda_client.get_function(current_function_name)
-    # current_function_tags = current_function['Tags']
-    # tag_list = ['environment', 'component']
-    # filter_tags = [{'Key': k, 'Values': [v]}
-    #                for k, v in current_function_tags.items()
-    #                if k in tag_list]
-    # tag_list['function-name'] = DRAIN_FUNCTION_NAME
-    # functions_response = resource_client.get_resources(
-    #     TagFilters=filter_tags,
-    #     ResourceTypeFilters=['lambda:function']
-    # )
-    # arn = functions_response['ResourceTagMappingList'][0]['ResourceARN']
-    # name = arn.split(':')[-1]
-    name = os.getenv('TAG_FUNCTION_NAME')
-    return name
-
-
 def publish_to_sns(message, subject, topic_arn):
     """ Publish message to SNS topic to invoke lambda again.
 

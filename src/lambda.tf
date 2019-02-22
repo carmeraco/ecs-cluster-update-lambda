@@ -59,11 +59,5 @@ resource "aws_lambda_function" "roll_lambda" {
   runtime          = "python3.6"
   timeout          = 300
 
-  environment {
-    variables = {
-      TAG_FUNCTION_NAME = "${aws_lambda_function.tag_lambda.function_name}"
-    }
-  }
-
   tags             = "${merge(var.tags, map('function-name', 'drain-tag'))}"
 }
