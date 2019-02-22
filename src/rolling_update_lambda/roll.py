@@ -138,6 +138,9 @@ def handler(event, context):
     if 'pause' not in message.keys():
         message['pause'] = DEFAULT_PAUSE
 
+    if 'dry_run' in message and message['dry_run']:
+        dry = True
+
     # Get ASG and instance state
     asg_data = describe_asg(message['asg_name'])
     current_inst_status = get_asg_instance_health(asg_data)
@@ -160,7 +163,7 @@ def handler(event, context):
 
         logger.info('Rolling update metadata: %s', str(message))
 
-        if message['dry_run']:
+        if dry:
             logger.info('DRY RUN: Tag instances to prevent scheduling:\n %s',
                         message['ec2_inst_ids'])
         else:
@@ -178,7 +181,7 @@ def handler(event, context):
         if target_count > message['asg_max']:
             asgargs['MaxSize'] = target_count
 
-        if message['dry_run']:
+        if dry:
             logger.info(
                 'DRY_RUN: Update ASG "%s" with values:\n %s',
                 message['asg_name'],
@@ -188,7 +191,7 @@ def handler(event, context):
             asg_client.update_auto_scaling_group(**asgargs)
 
         # Sleep the pause time to wait for instances to be created
-        if message['dry_run']:
+        if dry:
             logger.info(
                 'DRY_RUN: Sleep for %s to wait for instance creation',
                 message['pause']
@@ -206,14 +209,14 @@ def handler(event, context):
     ))
     healthy_instance_count = len(healthy_instances)
     instance_difference = healthy_instance_count - message['asg_count']
-    if message['dry_run']:
+    if dry:
         instance_difference = 1
     while instance_difference > 0:
         input = {
             'InstanceId': message['ec2_inst_ids'].pop(),
             'ShouldDecrementDesiredCapacity': False
         }
-        if message['dry_run']:
+        if dry:
             logger.info(
                 'DRY_RUN: Terminate instance:\n %s',
                 str(input)
@@ -236,7 +239,7 @@ def handler(event, context):
                 'Exceeded the maximum number of iterations, ending loop.')
             return
         logger.info('Pausing to wait for scaling operations to complete.')
-        if message['dry_run']:
+        if dry:
             logger.info(
                 'DRY RUN: %s instances remaining. Would sleep for %s',
                 str(len(message['ec2_inst_ids'])),
@@ -245,7 +248,7 @@ def handler(event, context):
         else:
             time.sleep(message['pause'])
         subject = 'Rolling update of asg: {}'.format(message['asg_name'])
-        if message['dry_run']:
+        if dry:
             logger.info(
                 'DRY RUN: Publishing to SNS Topic %s:\n Subject: %s,\n %s',
                 topic_arn,
