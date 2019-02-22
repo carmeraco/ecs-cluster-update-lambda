@@ -62,7 +62,7 @@ resource "aws_lambda_function" "rebalance_lambda" {
   role             = "${aws_iam_role.rebalance_lambda.arn}"
   function_name    = "${var.rebalance_lambda_name}"
   description      = "Rebalance tasks across an ECS cluster"
-  handler          = "rebalance.handler"
+  handler          = "rebalance.lambda_handler"
   runtime          = "python3.6"
   timeout          = 300
 
