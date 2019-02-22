@@ -138,8 +138,7 @@ def handler(event, context):
     if 'pause' not in message.keys():
         message['pause'] = DEFAULT_PAUSE
 
-    if 'dry_run' in message and message['dry_run']:
-        dry = True
+    dry = 'dry_run' in message and message['dry_run']
 
     # Get ASG and instance state
     asg_data = describe_asg(message['asg_name'])
