@@ -45,7 +45,7 @@ def describe_asg(asg_name):
     return group_response['AutoScalingGroups'][0]
 
 
-def get_asg_instance_health(asg_data):
+def get_asg_instance_status(asg_data):
     """ Parse Instance IDs and Health Status from Describe ASG data
 
     Args:
@@ -56,7 +56,7 @@ def get_asg_instance_health(asg_data):
     """
     raw_instances = asg_data['Instances']
     return [
-        {'id': i['InstanceId'], 'health': i['HealthStatus']}
+        {'id': i['InstanceId'], 'healthy': i['LifecycleState'] == 'InService'}
         for i in raw_instances
     ]
 
@@ -113,6 +113,25 @@ def set_drain_tag(instance_ids, drain):
         ]
     )
 
+def update_asg(desired, message, dry=False):
+    asgargs = {
+        'AutoScalingGroupName': message['asg_name'],
+        'DesiredCapacity': desired
+    }
+    if desired > message['asg_max']:
+        asgargs['MaxSize'] = desired
+    else:
+        asgargs['MaxSize'] = message['asg_max']
+
+    if dry:
+        logger.info(
+            'DRY_RUN: Update ASG "%s" with values:\n %s',
+            message['asg_name'],
+            str(asgargs)
+        )
+    else:
+        asg_client.update_auto_scaling_group(**asgargs)
+
 
 def handler(event, context):
     """ Main lambda handler.
@@ -138,11 +157,13 @@ def handler(event, context):
     if 'pause' not in message.keys():
         message['pause'] = DEFAULT_PAUSE
 
-    dry = 'dry_run' in message and message['dry_run']
+    dry = False
+    if 'dry_run' in message and message['dry_run']:
+        dry = True
 
     # Get ASG and instance state
     asg_data = describe_asg(message['asg_name'])
-    current_inst_status = get_asg_instance_health(asg_data)
+    current_inst_status = get_asg_instance_status(asg_data)
 
     # Setup rolling update process if it hasn't been done already
     if 'ec2_inst_ids' not in message.keys():
@@ -173,21 +194,22 @@ def handler(event, context):
         additional_instances = math.ceil(message['asg_desired'] * growth_mult)
         target_count = message['asg_desired'] + additional_instances
 
-        asgargs = {
-            'AutoScalingGroupName': message['asg_name'],
-            'DesiredCapacity': target_count
-        }
-        if target_count > message['asg_max']:
-            asgargs['MaxSize'] = target_count
-
-        if dry:
-            logger.info(
-                'DRY_RUN: Update ASG "%s" with values:\n %s',
-                message['asg_name'],
-                str(asgargs)
-            )
-        else:
-            asg_client.update_auto_scaling_group(**asgargs)
+        update_asg(target_count, message, dry)
+        # asgargs = {
+        #     'AutoScalingGroupName': message['asg_name'],
+        #     'DesiredCapacity': target_count
+        # }
+        # if target_count > message['asg_max']:
+        #     asgargs['MaxSize'] = target_count
+        #
+        # if dry:
+        #     logger.info(
+        #         'DRY_RUN: Update ASG "%s" with values:\n %s',
+        #         message['asg_name'],
+        #         str(asgargs)
+        #     )
+        # else:
+        #     asg_client.update_auto_scaling_group(**asgargs)
 
         # Sleep the pause time to wait for instances to be created
         if dry:
@@ -200,11 +222,11 @@ def handler(event, context):
 
         # Get new cluster data
         asg_data = describe_asg(message['asg_name'])
-        current_inst_status = get_asg_instance_health(asg_data)
+        current_inst_status = get_asg_instance_status(asg_data)
 
     # Check group health against terminating instances as appropriate
     healthy_instances = list(filter(
-        lambda h: h['health'] == 'Healthy', current_inst_status
+        lambda h: h['healthy'], current_inst_status
     ))
     healthy_instance_count = len(healthy_instances)
     instance_difference = healthy_instance_count - message['asg_count']
@@ -227,7 +249,8 @@ def handler(event, context):
     topic_arn = event['Records'][0]['Sns']['TopicArn']
 
     if len(message['ec2_inst_ids']) < 1:
-        logger.info('No EC2 Instances left.  Rolling update completed.')
+        logger.info('No EC2 Instances left.  Resetting ASG limits.')
+        update_asg(message['asg_desired'], message, dry)
         return
     else:
         message['iter'] += 1
