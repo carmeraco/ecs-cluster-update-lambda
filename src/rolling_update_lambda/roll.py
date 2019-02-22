@@ -166,7 +166,7 @@ def rebalance(asg_data, dry=False):
     lambda_client.invoke(
         FunctionName=os.getenv('REBALANCE_LAMBDA_NAME'),
         InvocationType='Event',
-        Payload=rebalance_payload
+        Payload=json.dumps(rebalance_payload)
     )
 
 
