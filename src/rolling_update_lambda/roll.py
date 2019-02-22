@@ -163,11 +163,15 @@ def rebalance(asg_data, dry=False):
     rebalance_payload = {
         'cluster_name': '/'.join(cluster_arn.split('/')[1:])
     }
-    lambda_client.invoke(
-        FunctionName=os.getenv('REBALANCE_LAMBDA_NAME'),
-        InvocationType='Event',
-        Payload=json.dumps(rebalance_payload)
-    )
+    try:
+        lambda_client.invoke(
+            FunctionName=os.getenv('REBALANCE_LAMBDA_NAME'),
+            InvocationType='Event',
+            Payload=json.dumps(rebalance_payload)
+        )
+    except Exception as e:
+        logger.warn('Rebalance failed.' exc_info=True)
+    return
 
 
 def handler(event, context):
