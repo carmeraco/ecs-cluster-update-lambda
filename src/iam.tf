@@ -165,7 +165,7 @@ data "aws_iam_policy_document" "roll_lambda_permissions" {
 
   statement {
     actions = [
-      "lambda:Invoke",
+      "lambda:InvokeFunction",
     ]
 
     resources = [
