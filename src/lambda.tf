@@ -16,7 +16,7 @@ resource "aws_lambda_function" "drain_lambda" {
   handler          = "drain.handler"
   runtime          = "python3.6"
   timeout          = 300
-  tags             = "${merge(var.tags, map('function-name', 'drain-instances'))}"
+  tags             = "${merge(var.tags, map("function-name", "drain-instances"))}"
 }
 
 ##############################################################
@@ -37,7 +37,7 @@ resource "aws_lambda_function" "tag_lambda" {
   handler          = "tag.handler"
   runtime          = "python3.6"
   timeout          = 300
-  tags             = "${merge(var.tags, map('function-name', 'drain-tag'))}"
+  tags             = "${merge(var.tags, map("function-name", "drain-tag"))}"
 }
 
 ##############################################################
@@ -59,5 +59,5 @@ resource "aws_lambda_function" "roll_lambda" {
   runtime          = "python3.6"
   timeout          = 300
 
-  tags             = "${merge(var.tags, map('function-name', 'drain-tag'))}"
+  tags = "${merge(var.tags, map("function-name", "drain-tag"))}"
 }

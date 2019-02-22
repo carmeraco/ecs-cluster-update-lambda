@@ -146,6 +146,7 @@ data "aws_iam_policy_document" "tag_lambda_permissions" {
       "*",
     ]
   }
+
   statement {
     actions = [
       "sns:Publish",
@@ -155,6 +156,7 @@ data "aws_iam_policy_document" "tag_lambda_permissions" {
       "${aws_sns_topic.asg_rolling_updates.arn}",
     ]
   }
+
   statement {
     actions = [
       "lambda:Invoke",
