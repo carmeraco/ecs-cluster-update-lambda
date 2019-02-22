@@ -6,7 +6,7 @@ resource "aws_sns_topic" "asg_updates" {
   display_name = "${var.sns_topic_name}"
 }
 
-resource "aws_lambda_permission" "allow_sns" {
+resource "aws_lambda_permission" "allow_sns_drain" {
   statement_id  = "AllowExecutionFromSNS"
   action        = "lambda:InvokeFunction"
   function_name = "${var.drain_lambda_name}"
@@ -36,7 +36,7 @@ resource "aws_sns_topic" "asg_rolling_updates" {
   display_name = "${var.roll_topic_name}"
 }
 
-resource "aws_lambda_permission" "allow_sns" {
+resource "aws_lambda_permission" "allow_sns_roll" {
   statement_id  = "AllowExecutionFromSNS"
   action        = "lambda:InvokeFunction"
   function_name = "${var.roll_lambda_name}"
