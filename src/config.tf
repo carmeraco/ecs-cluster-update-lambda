@@ -4,8 +4,8 @@ variable "drain_lambda_name" {
   default = "drain-ecs-lambda"
 }
 
-variable "tag_lambda_name" {
-  default = "tag-ecs-lambda"
+variable "rebalance_lambda_name" {
+  default = "rebalance-ecs-lambda"
 }
 
 variable "roll_lambda_name" {

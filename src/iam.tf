@@ -72,33 +72,38 @@ resource "aws_iam_role_policy_attachment" "drain_lambda_permissions" {
 }
 
 ##############################################################
-# tag-ecs-lambda
+# rebalance-ecs-lambda
 ##############################################################
-resource "aws_iam_role" "tag_lambda" {
-  name               = "${var.tag_lambda_name}-${var.region}"
+resource "aws_iam_role" "rebalance_lambda" {
+  name               = "${var.rebalance_lambda_name}-${var.region}"
   assume_role_policy = "${data.aws_iam_policy_document.trust_policy.json}"
 }
 
-resource "aws_iam_role_policy_attachment" "tag_lambda_basic_execution" {
-  role       = "${aws_iam_role.tag_lambda.name}"
+resource "aws_iam_role_policy_attachment" "rebalance_lambda_basic_execution" {
+  role       = "${aws_iam_role.rebalance_lambda.name}"
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 ##############################################################
-resource "aws_iam_policy" "tag_lambda_permissions" {
-  name        = "${aws_iam_role.tag_lambda.name}-permissions-${var.region}"
+resource "aws_iam_policy" "rebalance_lambda_permissions" {
+  name        = "${aws_iam_role.rebalance_lambda.name}-permissions-${var.region}"
   description = "Mark old ECS instances before rolling cluster update"
   path        = "/"
-  policy      = "${data.aws_iam_policy_document.tag_lambda_permissions.json}"
+  policy      = "${data.aws_iam_policy_document.rebalance_lambda_permissions.json}"
 }
 
-data "aws_iam_policy_document" "tag_lambda_permissions" {
+data "aws_iam_policy_document" "rebalance_lambda_permissions" {
   statement {
-    sid = "tagLambdaASGPermissions"
+    sid = "rebalanceLambdaASGPermissions"
 
     actions = [
-      "autoscaling:DescribeAutoScalingGroups",
-      "ec2:CreateTags",
+      "ecs:ListTasks",
+      "ecs:DescribeTasks",
+      "ecs:DescribeContainerInstances",
+      "ecs:ListServices",
+      "ecs:DescribeServices",
+      "ecs:UpdateService",
+      "ecs:ListContainerInstances",
     ]
 
     resources = [
@@ -107,9 +112,9 @@ data "aws_iam_policy_document" "tag_lambda_permissions" {
   }
 }
 
-resource "aws_iam_role_policy_attachment" "tag_lambda_permissions" {
-  role       = "${aws_iam_role.tag_lambda.name}"
-  policy_arn = "${aws_iam_policy.tag_lambda_permissions.arn}"
+resource "aws_iam_role_policy_attachment" "rebalance_lambda_permissions" {
+  role       = "${aws_iam_role.rebalance_lambda.name}"
+  policy_arn = "${aws_iam_policy.rebalance_lambda_permissions.arn}"
 }
 
 ##############################################################
@@ -121,7 +126,7 @@ resource "aws_iam_role" "roll_lambda" {
 }
 
 resource "aws_iam_role_policy_attachment" "roll_lambda_basic_execution" {
-  role       = "${aws_iam_role.tag_lambda.name}"
+  role       = "${aws_iam_role.roll_lambda.name}"
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
@@ -140,6 +145,7 @@ data "aws_iam_policy_document" "roll_lambda_permissions" {
       "autoscaling:TerminateInstanceInAutoScalingGroup",
       "autoscaling:UpdateAutoScalingGroup",
       "ec2:CreateTags",
+      "tag:GetResources",
     ]
 
     resources = [
@@ -163,7 +169,7 @@ data "aws_iam_policy_document" "roll_lambda_permissions" {
     ]
 
     resources = [
-      "${aws_lambda_function.tag_lambda.arn}",
+      "${aws_lambda_function.rebalance_lambda.arn}",
     ]
   }
 }

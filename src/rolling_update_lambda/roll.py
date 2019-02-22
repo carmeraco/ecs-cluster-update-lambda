@@ -98,7 +98,6 @@ def set_drain_tag(instance_ids, drain):
         instance_ids (list): EC2 instance ids that need to be tagged
         drain (bool): True if instances are tainted, False otherwise
     """
-
     logger.info('Setting "drain" tag to %s', drain)
     logger.info('Instance ids %s', instance_ids)
 
@@ -113,7 +112,14 @@ def set_drain_tag(instance_ids, drain):
         ]
     )
 
+
 def update_asg(desired, message, dry=False):
+    """ Adjust desired and max instances to allow for smooth load during update
+
+    Args:
+        desired (int): Number of instances to set desired value to
+        message (dict): Metadata about update process
+    """
     asgargs = {
         'AutoScalingGroupName': message['asg_name'],
         'DesiredCapacity': desired
@@ -131,6 +137,37 @@ def update_asg(desired, message, dry=False):
         )
     else:
         asg_client.update_auto_scaling_group(**asgargs)
+
+
+def rebalance(asg_data, dry=False):
+    """ Find resources related to asg group and take appropriate action
+
+    Args:
+        asg_data (dict): Describe ASG output for 1 ASG
+    """
+    asg_tags = asg_data['Tags']
+    filter_tags = [{"Key": t['Key'], "Values": [t['Value']]}
+                   for t in asg_tags
+                   if t['Key'] in ["component", "environment"]]
+    balancable_objects = resource_client.get_resources(
+        TagFilters=filter_tags,
+        ResourceTypeFilters=[
+            'ecs:cluster',
+        ]
+    )['ResourceTagMappingList']
+    if len(balancable_objects) != 1:
+        logger.warn('Found %s clusters.  Continuing without rebalancing',
+                    len(balancable_objects))
+        return
+    cluster_arn = balancable_objects[0]['ResourceARN']
+    rebalance_payload = {
+        'cluster_name': '/'.join(cluster_arn.split('/')[1:])
+    }
+    lambda_client.invoke(
+        FunctionName=os.getenv('REBALANCE_LAMBDA_NAME'),
+        InvocationType='Event',
+        Payload=rebalance_payload
+    )
 
 
 def handler(event, context):
@@ -250,7 +287,13 @@ def handler(event, context):
 
     if len(message['ec2_inst_ids']) < 1:
         logger.info('No EC2 Instances left.  Resetting ASG limits.')
+
+        # Clean up extra instances
         update_asg(message['asg_desired'], message, dry)
+        time.sleep(message['pause'])
+
+        # Rebalance ecs cluster
+        rebalance(asg_data, dry)
         return
     else:
         message['iter'] += 1

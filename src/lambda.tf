@@ -20,27 +20,6 @@ resource "aws_lambda_function" "drain_lambda" {
 }
 
 ##############################################################
-# tag-ecs-lambda
-##############################################################
-data "archive_file" "tag_lambda_zip" {
-  type        = "zip"
-  source_dir  = "${path.module}/tag_lambda"
-  output_path = "${path.module}/tag_lambda.zip"
-}
-
-resource "aws_lambda_function" "tag_lambda" {
-  filename         = "${data.archive_file.tag_lambda_zip.output_path}"
-  source_code_hash = "${data.archive_file.tag_lambda_zip.output_base64sha256}"
-  role             = "${aws_iam_role.tag_lambda.arn}"
-  function_name    = "${var.tag_lambda_name}"
-  description      = "Mark old ECS instances before rolling cluster update"
-  handler          = "tag.handler"
-  runtime          = "python3.6"
-  timeout          = 300
-  tags             = "${merge(var.tags, map("function-name", "drain-tag"))}"
-}
-
-##############################################################
 # rolling-update-ecs-lambda
 ##############################################################
 data "archive_file" "roll_lambda_zip" {
@@ -54,10 +33,38 @@ resource "aws_lambda_function" "roll_lambda" {
   source_code_hash = "${data.archive_file.roll_lambda_zip.output_base64sha256}"
   role             = "${aws_iam_role.roll_lambda.arn}"
   function_name    = "${var.roll_lambda_name}"
-  description      = "Mark old ECS instances before rolling cluster update"
+  description      = "Perform a rolling update of an AutoScaling group"
   handler          = "roll.handler"
   runtime          = "python3.6"
   timeout          = 300
 
+  environment {
+    variables = {
+      REBALANCE_LAMBDA_NAME = "${aws_lambda_function.rebalance_lambda.function_name}"
+    }
+  }
+
   tags = "${merge(var.tags, map("function-name", "rolling-update"))}"
+}
+
+##############################################################
+# rebalance-ecs-lambda
+##############################################################
+data "archive_file" "rebalance_lambda_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/rebalance_lambda"
+  output_path = "${path.module}/rebalance_lambda.zip"
+}
+
+resource "aws_lambda_function" "rebalance_lambda" {
+  filename         = "${data.archive_file.rebalance_lambda_zip.output_path}"
+  source_code_hash = "${data.archive_file.rebalance_lambda_zip.output_base64sha256}"
+  role             = "${aws_iam_role.rebalance_lambda.arn}"
+  function_name    = "${var.rebalance_lambda_name}"
+  description      = "Rebalance tasks across an ECS cluster"
+  handler          = "rebalance.handler"
+  runtime          = "python3.6"
+  timeout          = 300
+
+  tags = "${merge(var.tags, map("function-name", "rebalance"))}"
 }
