@@ -169,8 +169,8 @@ def rebalance(asg_data, dry=False):
             InvocationType='Event',
             Payload=json.dumps(rebalance_payload)
         )
-    except Exception as e:
-        logger.warn('Rebalance failed.' exc_info=True)
+    except Exception:
+        logger.warn('Rebalance failed.', exc_info=True)
     return
 
 
