@@ -16,7 +16,15 @@ resource "aws_lambda_function" "drain_lambda" {
   handler          = "drain.handler"
   runtime          = "python3.6"
   timeout          = 300
+
   tags             = "${merge(var.tags, map("function-name", "drain-instances"))}"
+
+  lifecycle {
+    ignore_changes = [
+      "last_modified",
+      "filename",
+    ]
+  }
 }
 
 ##############################################################
@@ -45,6 +53,13 @@ resource "aws_lambda_function" "roll_lambda" {
   }
 
   tags = "${merge(var.tags, map("function-name", "rolling-update"))}"
+
+  lifecycle {
+    ignore_changes = [
+      "last_modified",
+      "filename",
+    ]
+  }
 }
 
 ##############################################################
@@ -67,4 +82,11 @@ resource "aws_lambda_function" "rebalance_lambda" {
   timeout          = 300
 
   tags = "${merge(var.tags, map("function-name", "rebalance"))}"
+
+  lifecycle {
+    ignore_changes = [
+      "last_modified",
+      "filename",
+    ]
+  }
 }
