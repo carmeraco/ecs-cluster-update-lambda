@@ -4,7 +4,7 @@
 data "archive_file" "drain_lambda_zip" {
   type        = "zip"
   source_dir  = "${path.module}/drain_lambda"
-  output_path = "${path.module}/drain_lambda.zip"
+  output_path = "${path.root}/.terraform/drain_lambda.zip"
 }
 
 resource "aws_lambda_function" "drain_lambda" {
@@ -33,7 +33,7 @@ resource "aws_lambda_function" "drain_lambda" {
 data "archive_file" "roll_lambda_zip" {
   type        = "zip"
   source_dir  = "${path.module}/rolling_update_lambda"
-  output_path = "${path.module}/roll_lambda.zip"
+  output_path = "${path.root}/.terraform/roll_lambda.zip"
 }
 
 resource "aws_lambda_function" "roll_lambda" {
@@ -68,7 +68,7 @@ resource "aws_lambda_function" "roll_lambda" {
 data "archive_file" "rebalance_lambda_zip" {
   type        = "zip"
   source_dir  = "${path.module}/rebalance_lambda"
-  output_path = "${path.module}/rebalance_lambda.zip"
+  output_path = "${path.root}/.terraform/rebalance_lambda.zip"
 }
 
 resource "aws_lambda_function" "rebalance_lambda" {
